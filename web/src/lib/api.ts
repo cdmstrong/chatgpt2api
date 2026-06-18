@@ -152,6 +152,16 @@ export type ThirdPartyAppsSettings = {
   };
 };
 
+export type AIClient2APISyncSettings = {
+  enabled: boolean;
+  base_url: string;
+  api_key: string;
+  provider_type: string;
+  auto_sync_new_accounts: boolean;
+  sync_on_refresh: boolean;
+  filter_status: string;
+};
+
 export type SettingsConfig = {
   proxy: string;
   base_url?: string;
@@ -180,6 +190,7 @@ export type SettingsConfig = {
   image_storage?: ImageStorageSettings;
   proxy_runtime?: ProxyRuntimeSettings;
   third_party_apps?: ThirdPartyAppsSettings;
+  aiclient2api_sync?: AIClient2APISyncSettings;
   backup?: BackupSettings;
   backup_state?: BackupState;
   [key: string]: unknown;
@@ -996,5 +1007,45 @@ export async function testProxyClearance(targetUrl?: string) {
   return httpRequest<{ result: ClearanceTestResult }>("/api/proxy/clearance/test", {
     method: "POST",
     body: { target_url: targetUrl ?? "https://chatgpt.com" },
+  });
+}
+
+// ── AIClient2API 同步 ────────────────────────────────────────────
+
+export type AIClient2APITestResult = {
+  success: boolean;
+  message: string;
+  status_response?: Record<string, unknown>;
+};
+
+export type AIClient2APISyncResult = {
+  success: boolean;
+  message: string;
+  synced_count?: number;
+  failed_count?: number;
+  total_count?: number;
+};
+
+export async function fetchAIClient2APISettings() {
+  return httpRequest<{ settings: AIClient2APISyncSettings }>("/api/aiclient2api/settings");
+}
+
+export async function updateAIClient2APISettings(settings: AIClient2APISyncSettings) {
+  return httpRequest<{ settings: AIClient2APISyncSettings }>("/api/aiclient2api/settings", {
+    method: "POST",
+    body: settings,
+  });
+}
+
+export async function testAIClient2APIConnection() {
+  return httpRequest<AIClient2APITestResult>("/api/aiclient2api/test", {
+    method: "POST",
+  });
+}
+
+export async function syncAIClient2API(accessTokens?: string[], force?: boolean) {
+  return httpRequest<AIClient2APISyncResult>("/api/aiclient2api/sync", {
+    method: "POST",
+    body: { access_tokens: accessTokens ?? [], force: force ?? false },
   });
 }

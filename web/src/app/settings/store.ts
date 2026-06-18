@@ -37,6 +37,7 @@ import {
   type RegisterConfig,
   type SettingsConfig,
   type ThirdPartyAppsSettings,
+  type AIClient2APISyncSettings,
 } from "@/lib/api";
 
 export const PAGE_SIZE_OPTIONS = ["50", "100", "200"] as const;
@@ -71,6 +72,16 @@ const DEFAULT_THIRD_PARTY_APPS: ThirdPartyAppsSettings = {
     enabled: false,
     url: "https://canvas.best",
   },
+};
+
+const DEFAULT_AICLIENT2API_SYNC: AIClient2APISyncSettings = {
+  enabled: false,
+  base_url: "http://localhost:3000",
+  api_key: "",
+  provider_type: "openai-codex-oauth",
+  auto_sync_new_accounts: true,
+  sync_on_refresh: true,
+  filter_status: "正常",
 };
 
 function normalizeProxyRuntime(value: unknown): ProxyRuntimeSettings {
@@ -125,6 +136,19 @@ function normalizeThirdPartyApps(value: unknown): ThirdPartyAppsSettings {
       enabled: Boolean(canvas.enabled),
       url: String(canvas.url || DEFAULT_THIRD_PARTY_APPS.infinite_canvas.url),
     },
+  };
+}
+
+function normalizeAIClient2APISync(value: unknown): AIClient2APISyncSettings {
+  const source = typeof value === "object" && value !== null ? value as Partial<AIClient2APISyncSettings> : {};
+  return {
+    enabled: Boolean(source.enabled),
+    base_url: String(source.base_url || DEFAULT_AICLIENT2API_SYNC.base_url),
+    api_key: String(source.api_key || DEFAULT_AICLIENT2API_SYNC.api_key),
+    provider_type: String(source.provider_type || DEFAULT_AICLIENT2API_SYNC.provider_type),
+    auto_sync_new_accounts: Boolean(source.auto_sync_new_accounts ?? DEFAULT_AICLIENT2API_SYNC.auto_sync_new_accounts),
+    sync_on_refresh: Boolean(source.sync_on_refresh ?? DEFAULT_AICLIENT2API_SYNC.sync_on_refresh),
+    filter_status: String(source.filter_status || DEFAULT_AICLIENT2API_SYNC.filter_status),
   };
 }
 
@@ -207,6 +231,7 @@ function normalizeConfig(config: SettingsConfig): SettingsConfig {
     },
     proxy_runtime: normalizeProxyRuntime(config.proxy_runtime),
     third_party_apps: normalizeThirdPartyApps(config.third_party_apps),
+    aiclient2api_sync: normalizeAIClient2APISync(config.aiclient2api_sync),
     backup: {
       ...backup,
       enabled: Boolean(backup.enabled),
@@ -319,6 +344,7 @@ type SettingsStore = {
   setProxyRuntimeClearanceField: <K extends keyof ProxyRuntimeSettings["clearance"]>(key: K, value: ProxyRuntimeSettings["clearance"][K]) => void;
   setProxyRuntimeStatusCodesText: (value: string) => void;
   setInfiniteCanvasField: <K extends keyof ThirdPartyAppsSettings["infinite_canvas"]>(key: K, value: ThirdPartyAppsSettings["infinite_canvas"][K]) => void;
+  setAIClient2APIField: <K extends keyof AIClient2APISyncSettings>(key: K, value: AIClient2APISyncSettings[K]) => void;
   testImageStorage: () => Promise<void>;
   syncImagesToWebDAV: () => Promise<void>;
   setBackupField: (key: keyof BackupSettings, value: string | boolean) => void;
@@ -499,6 +525,15 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
             enabled: Boolean(config.third_party_apps?.infinite_canvas?.enabled),
             url: String(config.third_party_apps?.infinite_canvas?.url || DEFAULT_THIRD_PARTY_APPS.infinite_canvas.url).trim(),
           },
+        },
+        aiclient2api_sync: {
+          enabled: Boolean(config.aiclient2api_sync?.enabled),
+          base_url: String(config.aiclient2api_sync?.base_url || DEFAULT_AICLIENT2API_SYNC.base_url).trim(),
+          api_key: String(config.aiclient2api_sync?.api_key || "").trim(),
+          provider_type: String(config.aiclient2api_sync?.provider_type || DEFAULT_AICLIENT2API_SYNC.provider_type).trim(),
+          auto_sync_new_accounts: Boolean(config.aiclient2api_sync?.auto_sync_new_accounts),
+          sync_on_refresh: Boolean(config.aiclient2api_sync?.sync_on_refresh),
+          filter_status: String(config.aiclient2api_sync?.filter_status || DEFAULT_AICLIENT2API_SYNC.filter_status).trim(),
         },
         backup: {
           ...(config.backup as BackupSettings),
@@ -732,6 +767,24 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
               ...apps.infinite_canvas,
               [key]: value,
             },
+          },
+        },
+      };
+    });
+  },
+
+  setAIClient2APIField: (key, value) => {
+    set((state) => {
+      if (!state.config) {
+        return {};
+      }
+      const settings = normalizeAIClient2APISync(state.config.aiclient2api_sync);
+      return {
+        config: {
+          ...state.config,
+          aiclient2api_sync: {
+            ...settings,
+            [key]: value,
           },
         },
       };

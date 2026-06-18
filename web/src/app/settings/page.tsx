@@ -6,6 +6,7 @@ import { LoaderCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuthGuard } from "@/lib/use-auth-guard";
 
+import { AIClient2APISettingsCard } from "./components/aiclient2api-settings-card";
 import { BackupSettingsCard } from "./components/backup-settings-card";
 import { ApiDocsCard } from "./components/api-docs-card";
 import { ConfigCard } from "./components/config-card";
@@ -28,6 +29,7 @@ const settingsTabs = [
   { value: "proxy", title: "FlareSolverr" },
   { value: "cpa", title: "CPA" },
   { value: "sub2api", title: "Sub2API" },
+  { value: "aiclient2api", title: "AIClient2API" },
 ];
 
 function SettingsDataController() {
@@ -112,6 +114,9 @@ function SettingsPageContent() {
         </TabsContent>
         <TabsContent value="sub2api">
           <Sub2APIConnections />
+        </TabsContent>
+        <TabsContent value="aiclient2api">
+          <AIClient2APISettingsCard />
         </TabsContent>
       </Tabs>
       <CPAPoolDialog />

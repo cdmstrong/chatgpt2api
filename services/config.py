@@ -301,14 +301,30 @@ def _normalize_third_party_apps_settings(value: object) -> dict[str, object]:
 
 def _normalize_aiclient2api_sync_settings(value: object) -> dict[str, object]:
     source = value if isinstance(value, dict) else {}
+    env_enabled = os.getenv("CHATGPT2API_AICLIENT2API_ENABLED")
+    env_base_url = os.getenv("CHATGPT2API_AICLIENT2API_BASE_URL")
+    env_api_key = os.getenv("CHATGPT2API_AICLIENT2API_API_KEY")
+    env_provider_type = os.getenv("CHATGPT2API_AICLIENT2API_PROVIDER_TYPE")
+    env_auto_sync_new = os.getenv("CHATGPT2API_AICLIENT2API_AUTO_SYNC_NEW")
+    env_sync_on_refresh = os.getenv("CHATGPT2API_AICLIENT2API_SYNC_ON_REFRESH")
+    env_filter_status = os.getenv("CHATGPT2API_AICLIENT2API_FILTER_STATUS")
+
+    enabled = source.get("enabled")
+    base_url = source.get("base_url")
+    api_key = source.get("api_key")
+    provider_type = source.get("provider_type")
+    auto_sync_new_accounts = source.get("auto_sync_new_accounts")
+    sync_on_refresh = source.get("sync_on_refresh")
+    filter_status = source.get("filter_status")
+
     return {
-        "enabled": _normalize_bool(source.get("enabled"), DEFAULT_AICLIENT2API_SYNC["enabled"]),
-        "base_url": str(source.get("base_url") or DEFAULT_AICLIENT2API_SYNC["base_url"]).strip().rstrip("/"),
-        "api_key": str(source.get("api_key") or "").strip(),
-        "provider_type": str(source.get("provider_type") or DEFAULT_AICLIENT2API_SYNC["provider_type"]).strip(),
-        "auto_sync_new_accounts": _normalize_bool(source.get("auto_sync_new_accounts"), DEFAULT_AICLIENT2API_SYNC["auto_sync_new_accounts"]),
-        "sync_on_refresh": _normalize_bool(source.get("sync_on_refresh"), DEFAULT_AICLIENT2API_SYNC["sync_on_refresh"]),
-        "filter_status": str(source.get("filter_status") or DEFAULT_AICLIENT2API_SYNC["filter_status"]).strip(),
+        "enabled": _normalize_bool(env_enabled if env_enabled is not None else enabled, DEFAULT_AICLIENT2API_SYNC["enabled"]),
+        "base_url": str(env_base_url or base_url or DEFAULT_AICLIENT2API_SYNC["base_url"]).strip().rstrip("/"),
+        "api_key": str(env_api_key or api_key or "").strip(),
+        "provider_type": str(env_provider_type or provider_type or DEFAULT_AICLIENT2API_SYNC["provider_type"]).strip(),
+        "auto_sync_new_accounts": _normalize_bool(env_auto_sync_new if env_auto_sync_new is not None else auto_sync_new_accounts, DEFAULT_AICLIENT2API_SYNC["auto_sync_new_accounts"]),
+        "sync_on_refresh": _normalize_bool(env_sync_on_refresh if env_sync_on_refresh is not None else sync_on_refresh, DEFAULT_AICLIENT2API_SYNC["sync_on_refresh"]),
+        "filter_status": str(env_filter_status or filter_status or DEFAULT_AICLIENT2API_SYNC["filter_status"]).strip(),
     }
 
 
