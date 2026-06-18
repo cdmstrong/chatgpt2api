@@ -1144,9 +1144,11 @@ class AccountService:
         with self._lock:
             added = 0
             skipped = 0
+            new_accounts = []
             for access_token, payload in deduped.items():
                 current = self._accounts.get(access_token)
-                if current is None:
+                is_new = current is None
+                if is_new:
                     added += 1
                     self._cumulative_total += 1
                     self._save_cumulative_total()
@@ -1166,10 +1168,19 @@ class AccountService:
                 )
                 if account is not None:
                     self._accounts[access_token] = account
+                    if is_new:
+                        new_accounts.append(account)
             self._save_accounts()
             items = [dict(item) for item in self._accounts.values()]
             log_service.add(LOG_TYPE_ACCOUNT, f"新增 {added} 个账号，跳过 {skipped} 个",
                             {"added": added, "skipped": skipped})
+
+        # 异步同步新账号到 AIClient2API
+        if new_accounts:
+            from services.aiclient2api_sync_service import sync_service
+            for account in new_accounts:
+                sync_service.sync_single_account_async(account)
+
         return {"added": added, "skipped": skipped, "items": items}
 
     def delete_accounts(self, tokens: list[str]) -> dict:
@@ -1542,6 +1553,13 @@ class AccountService:
 
         if progress_id:
             self.finish_refresh_progress(progress_id, result)
+
+        # 刷新后同步到 AIClient2API
+        if refreshed > 0:
+            from services.aiclient2api_sync_service import sync_service
+            for account in result["items"]:
+                if account and account.get("status") == "正常":
+                    sync_service.sync_account_on_refresh(account)
 
         return result
 

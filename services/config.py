@@ -83,6 +83,17 @@ DEFAULT_THIRD_PARTY_APPS = {
     },
 }
 
+# AIClient2API 集成配置 - 账号注册后自动同步到 AIClient2API 提供商池
+DEFAULT_AICLIENT2API_SYNC = {
+    "enabled": False,
+    "base_url": "http://localhost:3000",
+    "api_key": "",
+    "provider_type": "openai-codex-oauth",
+    "auto_sync_new_accounts": True,  # 注册新账号时自动同步
+    "sync_on_refresh": True,         # token 刷新后自动同步
+    "filter_status": "正常",         # 只同步指定状态的账号
+}
+
 
 def _normalize_bool(value: object, default: bool = False) -> bool:
     if isinstance(value, str):
@@ -285,6 +296,19 @@ def _normalize_third_party_apps_settings(value: object) -> dict[str, object]:
             "enabled": _normalize_bool(canvas_source.get("enabled"), False),
             "url": str(canvas_source.get("url") or DEFAULT_THIRD_PARTY_APPS["infinite_canvas"]["url"]).strip(),
         },
+    }
+
+
+def _normalize_aiclient2api_sync_settings(value: object) -> dict[str, object]:
+    source = value if isinstance(value, dict) else {}
+    return {
+        "enabled": _normalize_bool(source.get("enabled"), DEFAULT_AICLIENT2API_SYNC["enabled"]),
+        "base_url": str(source.get("base_url") or DEFAULT_AICLIENT2API_SYNC["base_url"]).strip().rstrip("/"),
+        "api_key": str(source.get("api_key") or "").strip(),
+        "provider_type": str(source.get("provider_type") or DEFAULT_AICLIENT2API_SYNC["provider_type"]).strip(),
+        "auto_sync_new_accounts": _normalize_bool(source.get("auto_sync_new_accounts"), DEFAULT_AICLIENT2API_SYNC["auto_sync_new_accounts"]),
+        "sync_on_refresh": _normalize_bool(source.get("sync_on_refresh"), DEFAULT_AICLIENT2API_SYNC["sync_on_refresh"]),
+        "filter_status": str(source.get("filter_status") or DEFAULT_AICLIENT2API_SYNC["filter_status"]).strip(),
     }
 
 
@@ -598,6 +622,8 @@ class ConfigStore:
             )
         if "third_party_apps" in next_data:
             next_data["third_party_apps"] = _normalize_third_party_apps_settings(next_data.get("third_party_apps"))
+        if "aiclient2api_sync" in next_data:
+            next_data["aiclient2api_sync"] = _normalize_aiclient2api_sync_settings(next_data.get("aiclient2api_sync"))
         if "proxy_runtime" in next_data:
             incoming_runtime = next_data.get("proxy_runtime")
             if isinstance(incoming_runtime, dict):
@@ -620,6 +646,9 @@ class ConfigStore:
 
     def get_chat_completion_cache_settings(self) -> dict[str, object]:
         return _normalize_chat_completion_cache_settings(self.data.get("chat_completion_cache"))
+
+    def get_aiclient2api_sync_settings(self) -> dict[str, object]:
+        return _normalize_aiclient2api_sync_settings(self.data.get("aiclient2api_sync"))
 
     def get_storage_backend(self) -> StorageBackend:
         """获取存储后端实例（单例）"""

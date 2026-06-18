@@ -71,6 +71,23 @@ class AccountUpdateRequest(BaseModel):
     proxy: str | None = None
 
 
+class AIClient2APISyncSettings(BaseModel):
+    """AIClient2API 同步配置"""
+    enabled: bool = False
+    base_url: str = ""
+    api_key: str = ""
+    provider_type: str = "openai-codex-oauth"
+    auto_sync_new_accounts: bool = True
+    sync_on_refresh: bool = True
+    filter_status: str = "正常"
+
+
+class AIClient2APISyncRequest(BaseModel):
+    """AIClient2API 同步请求"""
+    access_tokens: list[str] = Field(default_factory=list)
+    force: bool = False
+
+
 class CPAPoolCreateRequest(BaseModel):
     name: str = ""
     base_url: str = ""
@@ -533,5 +550,59 @@ def create_router() -> APIRouter:
         if server is None:
             raise HTTPException(status_code=404, detail={"error": "server not found"})
         return {"import_job": server.get("import_job")}
+
+    # ============================================================
+    # AIClient2API 集成 API
+    # ============================================================
+
+    @router.get("/api/aiclient2api/settings")
+    async def get_aiclient2api_settings(authorization: str | None = Header(default=None)):
+        require_admin(authorization)
+        from services.config import config
+        return {"settings": config.get_aiclient2api_sync_settings()}
+
+    @router.post("/api/aiclient2api/settings")
+    async def update_aiclient2api_settings(body: AIClient2APISyncSettings, authorization: str | None = Header(default=None)):
+        require_admin(authorization)
+        from services.config import config
+        config.update({"aiclient2api_sync": body.dict()})
+        return {"settings": config.get_aiclient2api_sync_settings()}
+
+    @router.post("/api/aiclient2api/test")
+    async def test_aiclient2api_connection(authorization: str | None = Header(default=None)):
+        require_admin(authorization)
+        from services.aiclient2api_sync_service import sync_service
+        result = sync_service.test_connection()
+        return result
+
+    @router.post("/api/aiclient2api/sync")
+    async def sync_accounts_to_aiclient2api(body: AIClient2APISyncRequest, authorization: str | None = Header(default=None)):
+        require_admin(authorization)
+        from services.aiclient2api_sync_service import sync_service
+
+        if not body.access_tokens:
+            # 同步所有账号
+            result = sync_service.sync_all_accounts()
+        else:
+            # 同步指定账号
+            from services.account_service import account_service
+            synced_count = 0
+            failed_count = 0
+            for token in body.access_tokens:
+                account = account_service.get_account(token)
+                if account:
+                    if sync_service.sync_single_account(account, force=body.force):
+                        synced_count += 1
+                    else:
+                        failed_count += 1
+            result = {
+                "success": synced_count > 0,
+                "message": f"Synced {synced_count}/{len(body.access_tokens)} accounts",
+                "synced_count": synced_count,
+                "failed_count": failed_count,
+                "total_count": len(body.access_tokens),
+            }
+
+        return result
 
     return router
